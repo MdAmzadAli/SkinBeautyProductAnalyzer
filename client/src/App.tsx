@@ -12,6 +12,7 @@ import CameraUpload from "./components/CameraUpload";
 import IngredientAnalysis from "./components/IngredientAnalysis";
 import AnalysisHistory from "./components/AnalysisHistory";
 import ProfileDialog from "./components/ProfileDialog";
+import ProfileView from "./components/ProfileView";
 
 //todo: remove mock functionality - replace with real data from backend
 const mockAnalysisRecords = [
@@ -64,7 +65,6 @@ function App() {
   const [currentView, setCurrentView] = useState('home');
   const [extractedText, setExtractedText] = useState("");
   const [analysisResults, setAnalysisResults] = useState<any[]>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
 
   // Initialize state from localStorage
@@ -128,26 +128,17 @@ function App() {
     }
   };
 
-  const handleImageCapture = (file: File) => {
-    console.log('Image captured:', file.name);
-    // Simulate OCR extraction
-    setExtractedText("Water, Hyaluronic Acid, Niacinamide, Glycolic Acid, Alcohol Denat, Preservatives");
-  };
-
-  const handleAnalyze = () => {
-    setIsAnalyzing(true);
-    // Simulate analysis delay
-    setTimeout(() => {
-      setAnalysisResults(mockIngredients);
-      setIsAnalyzing(false);
-      setCurrentView('analysis');
-    }, 2000);
+  const handleAnalysisComplete = (ingredients: string[]) => {
+    console.log('Analysis completed for ingredients:', ingredients);
+    // Use mock ingredients for now as requested
+    setAnalysisResults(mockIngredients);
+    setExtractedText(ingredients.join(', '));
+    setCurrentView('analysis');
   };
 
   const handleConfirmText = (text: string) => {
     console.log('Text confirmed:', text);
     setExtractedText(text);
-    handleAnalyze();
   };
 
   const handleSaveAnalysis = () => {
@@ -195,17 +186,7 @@ function App() {
     
     switch (currentView) {
       case 'profile':
-        return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold mb-2">Update Your Skin Profile</h1>
-              <p className="text-muted-foreground">
-                Modify your skin profile for more personalized recommendations
-              </p>
-            </div>
-            <MultiStepForm onComplete={handleProfileComplete} />
-          </div>
-        );
+        return <ProfileView />;
       
       case 'camera':
         return (
@@ -217,9 +198,7 @@ function App() {
               </p>
             </div>
             <CameraUpload 
-              onImageCapture={handleImageCapture}
-              onAnalyze={handleAnalyze}
-              isAnalyzing={isAnalyzing}
+              onAnalysisComplete={handleAnalysisComplete}
             />
           </div>
         );
@@ -238,7 +217,7 @@ function App() {
               ingredients={analysisResults}
               onConfirmText={handleConfirmText}
               onSaveAnalysis={handleSaveAnalysis}
-              isLoading={isAnalyzing}
+              isLoading={false}
             />
           </div>
         );
