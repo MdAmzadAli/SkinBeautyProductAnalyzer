@@ -1,0 +1,72 @@
+Checkpoint 1: User Skin Data Collection
+
+Build a multi-step form interface that collects in-depth user skin data.
+
+Each step contains only multiple-choice questions (radio buttons, dropdowns, checkboxes) for easy selection, covering:
+
+Skin type (normal, oily, dry, combination, sensitive)
+
+Specific skin concerns (acne, pigmentation, aging, dryness, redness, etc.)
+
+Allergies or ingredient sensitivities (fragrance, parabens, sulfates, etc.)
+
+Lifestyle factors impacting skin (sun exposure, pollution, diet)
+
+Final step is an open-text form allowing users to freely write any additional concerns or info not covered in prior steps.
+
+Store all collected data securely in the backend database keyed to each user.
+
+Checkpoint 2: Ingredient Photo Upload & OCR Extraction
+
+After submission, redirect user to a dashboard landing page with a prominent product ingredient photo upload screen.
+
+Enable the user to take a photo of the ingredients label or upload from gallery.
+
+Upon upload, call backend OCR service (Google ML Kit or equivalent) to extract ingredient text accurately.
+
+Allow user to review and confirm extracted ingredient list before processing further.
+
+Checkpoint 3: Ingredient Info Fetch via Custom Search API
+
+Send the extracted ingredient list to backend.
+
+Perform a well-crafted search query on your configured Google Programmable Search Engine (India-curated skincare ingredient sites) using Google Custom Search JSON API.
+
+Aggregate top relevant result snippets and links referencing ingredient safety, benefits, or risks in Indian context.
+
+Checkpoint 4: AI-powered Compatibility Analysis and Report Generation
+
+Feed aggregated ingredient info along with the user’s skin profile data to AI (GPT or Google language model).
+
+Use a precise prompt instructing the AI to classify each ingredient’s suitability into tags: Excellent, Good, Not Bad, Bad.
+
+Request detailed, user-friendly explanations for each tag, supported explicitly by citing source website links as credibility.
+
+Return this structured, annotated analysis back to frontend for display.
+
+Checkpoint 5: History & Product Cards
+
+Save the entire detailed product analysis in a user's history or profile section.
+
+Display previous analyses as cards with:
+
+Thumbnail image from product ingredient photo
+
+Summary tags and analysis highlights
+
+Links to original sources
+
+Allow users to revisit, compare or delete past records in their history easily.
+
+Additional Implementation Details
+Ensure the multi-step forms use clear validations and progress indications.
+
+Store all user data and analysis results securely complying with data privacy best practices.
+
+Provide fallback instructions if OCR or search results are ambiguous or missing.
+
+Optimize for mobile with a clean, responsive UI given Indian user demographics.
+
+Consider localization in local languages based on target users (English, Hindi, Tamil etc.).
+
+Use async background processing for OCR, search, and AI to keep frontend responsive.
