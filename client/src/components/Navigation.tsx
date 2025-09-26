@@ -30,24 +30,21 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
   };
 
   // Determine which nav items to show based on state
-  const getNavItems = () => {
-    if (!hasEnteredApp) {
-      return []; // No nav items before entering app
-    }
-    
-    if (!hasProfile) {
-      return []; // No nav items during profile creation
-    }
-    
-    // Full nav after profile creation
-    return [
-      { id: 'camera', label: 'Analyze', icon: Camera },
-      { id: 'history', label: 'History', icon: History },
-      { id: 'profile', label: 'Profile', icon: User }
-    ];
-  };
+  const fullNav = hasEnteredApp && hasProfile;
   
-  const navItems = getNavItems();
+  const primaryNavItems = fullNav ? [
+    { id: 'camera', label: 'Analyze', icon: Camera },
+    { id: 'history', label: 'History', icon: History }
+  ] : [];
+  
+  const profileNav = fullNav ? { id: 'profile', label: 'Profile', icon: User } : null;
+  
+  // For mobile bottom nav, keep all items together
+  const mobileBottomNavItems = fullNav ? [
+    { id: 'camera', label: 'Analyze', icon: Camera },
+    { id: 'history', label: 'History', icon: History },
+    { id: 'profile', label: 'Profile', icon: User }
+  ] : [];
 
   const handleNavigate = (view: string) => {
     onNavigate(view);
@@ -57,7 +54,7 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
   return (
     <>
       {/* Desktop Header */}
-      <header className="hidden md:flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <header className="hidden md:grid grid-cols-[auto_1fr_auto] items-center p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">S</span>
@@ -65,7 +62,8 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
           <h1 className="text-xl font-bold">SkinSense</h1>
         </div>
 
-        <nav className="flex items-center gap-1">
+        {/* Middle - Primary Navigation */}
+        <nav className="flex items-center justify-center gap-1">
           {!hasEnteredApp && (
             <Button
               onClick={onGetStarted}
@@ -76,7 +74,7 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
             </Button>
           )}
           
-          {navItems.map((item) => {
+          {primaryNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
             
@@ -95,14 +93,29 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
           })}
         </nav>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleDarkMode}
-          data-testid="button-theme-toggle"
-        >
-          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </Button>
+        {/* Right - Profile and Theme */}
+        <div className="flex items-center gap-2 justify-end">
+          {profileNav && (
+            <Button
+              variant={currentView === 'profile' ? "default" : "ghost"}
+              onClick={() => handleNavigate('profile')}
+              className="gap-2"
+              data-testid="nav-profile"
+            >
+              <User className="w-4 h-4" />
+              {profileNav.label}
+            </Button>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleDarkMode}
+            data-testid="button-theme-toggle"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
+        </div>
       </header>
 
       {/* Mobile Header */}
@@ -115,6 +128,17 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
         </div>
 
         <div className="flex items-center gap-2">
+          {profileNav && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleNavigate('profile')}
+              data-testid="button-mobile-profile"
+            >
+              <User className="w-4 h-4" />
+            </Button>
+          )}
+          
           <Button
             variant="ghost"
             size="icon"
@@ -149,7 +173,7 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
               </Button>
             )}
             
-            {navItems.map((item) => {
+            {primaryNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentView === item.id;
               
@@ -166,16 +190,28 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
                 </Button>
               );
             })}
+            
+            {profileNav && (
+              <Button
+                variant={currentView === 'profile' ? "default" : "ghost"}
+                onClick={() => handleNavigate('profile')}
+                className="w-full justify-start gap-3"
+                data-testid="mobile-nav-profile"
+              >
+                <User className="w-4 h-4" />
+                {profileNav.label}
+              </Button>
+            )}
           </nav>
         </div>
       )}
 
       {/* Mobile Bottom Navigation */}
       {/* Mobile Bottom Navigation */}
-      {navItems.length > 0 && (
+      {mobileBottomNavItems.length > 0 && (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-40">
-          <div className={`grid gap-1 p-2 ${navItems.length === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-            {navItems.map((item) => {
+          <div className="grid grid-cols-3 gap-1 p-2">
+            {mobileBottomNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentView === item.id;
               
