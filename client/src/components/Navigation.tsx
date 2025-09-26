@@ -39,12 +39,6 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
   
   const profileNav = fullNav ? { id: 'profile', label: 'Profile', icon: User } : null;
   
-  // For mobile bottom nav, keep all items together
-  const mobileBottomNavItems = fullNav ? [
-    { id: 'camera', label: 'Analyze', icon: Camera },
-    { id: 'history', label: 'History', icon: History },
-    { id: 'profile', label: 'Profile', icon: User }
-  ] : [];
 
   const handleNavigate = (view: string) => {
     onNavigate(view);
@@ -190,48 +184,11 @@ export default function Navigation({ currentView, onNavigate, hasEnteredApp, has
                 </Button>
               );
             })}
-            
-            {profileNav && (
-              <Button
-                variant={currentView === 'profile' ? "default" : "ghost"}
-                onClick={() => handleNavigate('profile')}
-                className="w-full justify-start gap-3"
-                data-testid="mobile-nav-profile"
-              >
-                <User className="w-4 h-4" />
-                {profileNav.label}
-              </Button>
-            )}
           </nav>
         </div>
       )}
 
       {/* Mobile Bottom Navigation */}
-      {/* Mobile Bottom Navigation */}
-      {mobileBottomNavItems.length > 0 && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-40">
-          <div className="grid grid-cols-3 gap-1 p-2">
-            {mobileBottomNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentView === item.id;
-              
-              return (
-                <Button
-                  key={item.id}
-                  variant={isActive ? "default" : "ghost"}
-                  onClick={() => handleNavigate(item.id)}
-                  className="flex-col h-16 gap-1"
-                  size="sm"
-                  data-testid={`bottom-nav-${item.id}`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-xs">{item.label}</span>
-                </Button>
-              );
-            })}
-          </div>
-        </nav>
-      )}
     </>
   );
 }

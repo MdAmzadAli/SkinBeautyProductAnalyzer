@@ -274,7 +274,7 @@ function App() {
             onGetStarted={handleGetStarted}
           />
           
-          <main className="p-6 pb-24 md:pb-6">
+          <main className="p-6">
             <div className="max-w-6xl mx-auto">
               {renderCurrentView()}
             </div>
