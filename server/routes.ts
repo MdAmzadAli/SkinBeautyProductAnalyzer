@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
-import Tesseract from "tesseract.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import path from "path";
 import fs from "fs/promises";
 
@@ -66,38 +66,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // OCR endpoint for ingredient extraction
+  // Gemini AI endpoint for ingredient extraction
   app.post("/api/ocr-extract", upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      console.log('Processing OCR for file:', req.file.originalname);
+      console.log('Processing ingredient extraction for file:', req.file.originalname);
       
-      // Perform OCR using Tesseract
-      const result = await Tesseract.recognize(
-        req.file.path,
-        'eng',
-        {
-          logger: m => console.log(m)
-        }
-      );
+      // Initialize Gemini AI
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+      
+      // Read the image file
+      const imageData = await fs.readFile(req.file.path);
+      const imageBase64 = imageData.toString('base64');
       
       // Clean up the uploaded file
       await fs.unlink(req.file.path);
       
-      // Extract and clean the text to get only ingredient names
-      const extractedText = result.data.text;
-      const cleanedIngredients = cleanIngredientText(extractedText);
+      const prompt = `Analyze this cosmetic/skincare product ingredient label image and extract all ingredients with their amounts if listed. Return the response as a JSON object with this exact structure:
+      {
+        "ingredients": [
+          {
+            "name": "ingredient name",
+            "amount": "amount if specified or null"
+          }
+        ]
+      }
+      
+      Guidelines:
+      - Extract ingredient names exactly as they appear
+      - Include amounts/percentages if visible (e.g., "2%", "0.5%", etc.)
+      - If no amount is specified, set amount to null
+      - Only include actual ingredients, not instructions or other text
+      - Clean up any OCR artifacts but keep ingredient names accurate`;
+      
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: req.file.mimetype
+          }
+        }
+      ]);
+      
+      const response = await result.response;
+      const text = response.text();
+      
+      // Parse the JSON response from Gemini
+      let extractedData;
+      try {
+        // Remove any markdown formatting if present
+        const cleanedText = text.replace(/```json\n?|```\n?/g, '').trim();
+        extractedData = JSON.parse(cleanedText);
+      } catch (parseError) {
+        console.error("Error parsing Gemini response:", parseError);
+        console.log("Raw response:", text);
+        throw new Error("Failed to parse ingredient data from AI response");
+      }
       
       res.json({
-        originalText: extractedText,
-        ingredients: cleanedIngredients
+        originalText: text,
+        ingredients: extractedData.ingredients || []
       });
       
     } catch (error) {
-      console.error("Error processing OCR:", error);
+      console.error("Error processing ingredient extraction:", error);
       
       // Clean up file if it exists
       if (req.file) {
@@ -108,7 +145,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      res.status(500).json({ error: "Failed to process image" });
+      res.status(500).json({ 
+        error: "Failed to process image", 
+        details: error.message 
+      });
     }
   });
 
@@ -117,39 +157,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Helper function to clean and extract ingredient names from OCR text
-function cleanIngredientText(text: string): string[] {
-  // Remove common OCR artifacts and clean the text
-  let cleanedText = text
-    .replace(/[^a-zA-Z0-9\s,\-\(\)\[\]]/g, '') // Remove special characters except basic punctuation
-    .replace(/\s+/g, ' ') // Normalize whitespace
-    .trim();
-  
-  // Split by common delimiters used in ingredient lists
-  const ingredients = cleanedText
-    .split(/[,;\n]/) // Split by comma, semicolon, or newline
-    .map(ingredient => ingredient.trim())
-    .filter(ingredient => {
-      // Filter out empty strings and common non-ingredient words
-      if (!ingredient) return false;
-      if (ingredient.length < 2) return false;
-      
-      // Filter out common OCR artifacts and non-ingredient terms
-      const excludePatterns = [
-        /^\d+$/,  // Pure numbers
-        /ingredients/i,
-        /contains/i,
-        /directions/i,
-        /use/i,
-        /apply/i,
-        /product/i,
-        /warning/i,
-        /caution/i
-      ];
-      
-      return !excludePatterns.some(pattern => pattern.test(ingredient));
-    })
-    .slice(0, 20); // Limit to reasonable number of ingredients
-  
-  return ingredients;
-}

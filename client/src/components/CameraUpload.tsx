@@ -3,7 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Upload, X, RotateCcw, CheckCircle, FileText, Zap } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Camera, Upload, X, RotateCcw, CheckCircle, FileText, Zap, Plus, Trash2 } from "lucide-react";
+
+interface Ingredient {
+  name: string;
+  amount: string | null;
+}
 
 interface CameraUploadProps {
   onAnalysisComplete: (ingredients: string[]) => void;
@@ -16,7 +22,7 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState<string>("");
-  const [editableIngredients, setEditableIngredients] = useState<string>("");
+  const [extractedIngredients, setExtractedIngredients] = useState<Ingredient[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -58,7 +64,7 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
     setCapturedImage(null);
     setCapturedFile(null);
     setExtractedText("");
-    setEditableIngredients("");
+    setExtractedIngredients([]);
     setCurrentStep('upload');
   };
 
@@ -82,7 +88,7 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
       if (response.ok) {
         const result = await response.json();
         setExtractedText(result.originalText);
-        setEditableIngredients(result.ingredients.join(', '));
+        setExtractedIngredients(result.ingredients || []);
         setCurrentStep('analyze');
       } else {
         console.error('Failed to extract ingredients');
@@ -99,10 +105,9 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
   const handleAnalyzeIngredients = () => {
     setIsAnalyzing(true);
     
-    // Parse the editable ingredients
-    const ingredients = editableIngredients
-      .split(',')
-      .map(ingredient => ingredient.trim())
+    // Get ingredient names from the edited list
+    const ingredients = extractedIngredients
+      .map(ingredient => ingredient.name.trim())
       .filter(ingredient => ingredient.length > 0);
     
     // Simulate analysis delay
@@ -110,6 +115,21 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
       setIsAnalyzing(false);
       onAnalysisComplete(ingredients);
     }, 2000);
+  };
+
+  const updateIngredient = (index: number, field: 'name' | 'amount', value: string) => {
+    const updated = [...extractedIngredients];
+    updated[index] = { ...updated[index], [field]: value };
+    setExtractedIngredients(updated);
+  };
+
+  const removeIngredient = (index: number) => {
+    const updated = extractedIngredients.filter((_, i) => i !== index);
+    setExtractedIngredients(updated);
+  };
+
+  const addIngredient = () => {
+    setExtractedIngredients([...extractedIngredients, { name: '', amount: null }]);
   };
 
   const renderUploadStep = () => (
@@ -275,20 +295,68 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
               </div>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="ingredients" className="text-sm font-medium">
-                Extracted Ingredients (edit if needed):
-              </label>
-              <Textarea
-                id="ingredients"
-                value={editableIngredients}
-                onChange={(e) => setEditableIngredients(e.target.value)}
-                placeholder="Water, Glycerin, Hyaluronic Acid, Niacinamide..."
-                className="min-h-[100px]"
-                data-testid="textarea-ingredients"
-              />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">
+                  Extracted Ingredients (edit as needed):
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addIngredient}
+                  data-testid="button-add-ingredient"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Ingredient
+                </Button>
+              </div>
+              
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {extractedIngredients.map((ingredient, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={ingredient.name}
+                        onChange={(e) => updateIngredient(index, 'name', e.target.value)}
+                        placeholder="Ingredient name"
+                        className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+                        data-testid={`input-ingredient-name-${index}`}
+                      />
+                    </div>
+                    <div className="w-24">
+                      <input
+                        type="text"
+                        value={ingredient.amount || ''}
+                        onChange={(e) => updateIngredient(index, 'amount', e.target.value || null)}
+                        placeholder="Amount"
+                        className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+                        data-testid={`input-ingredient-amount-${index}`}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeIngredient(index)}
+                      className="flex-shrink-0"
+                      data-testid={`button-remove-ingredient-${index}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
+              {extractedIngredients.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No ingredients extracted. Click "Add Ingredient" to add them manually.
+                </p>
+              )}
+              
               <p className="text-xs text-muted-foreground">
-                Separate ingredients with commas. You can add, remove, or edit ingredients as needed.
+                You can edit ingredient names and amounts, or add/remove ingredients as needed.
               </p>
             </div>
             
@@ -305,7 +373,7 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
               
               <Button
                 onClick={handleAnalyzeIngredients}
-                disabled={isAnalyzing || !editableIngredients.trim()}
+                disabled={isAnalyzing || extractedIngredients.length === 0 || !extractedIngredients.some(ing => ing.name.trim())}
                 className="flex-1"
                 data-testid="button-analyze-final"
               >
