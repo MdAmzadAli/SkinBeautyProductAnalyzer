@@ -21,7 +21,7 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
   const [currentStep, setCurrentStep] = useState<Step>('upload');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
-  const [extractedText, setExtractedText] = useState<string>("");
+  
   const [extractedIngredients, setExtractedIngredients] = useState<Ingredient[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -63,7 +63,6 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
   const clearImage = () => {
     setCapturedImage(null);
     setCapturedFile(null);
-    setExtractedText("");
     setExtractedIngredients([]);
     setCurrentStep('upload');
   };
@@ -87,7 +86,6 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
 
       if (response.ok) {
         const result = await response.json();
-        setExtractedText(result.originalText);
         setExtractedIngredients(result.ingredients || []);
         setCurrentStep('analyze');
       } else {
@@ -196,7 +194,7 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
           Extract Ingredients
         </CardTitle>
         <p className="text-muted-foreground">
-          Use OCR technology to extract ingredient names from your image
+          Use AI technology to extract ingredient names from your image
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -286,14 +284,7 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
               </Button>
             </div>
 
-            {extractedText && (
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Raw OCR Text:</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {extractedText}
-                </p>
-              </div>
-            )}
+            
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">

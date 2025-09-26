@@ -129,7 +129,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json({
-        originalText: text,
         ingredients: extractedData.ingredients || []
       });
       
