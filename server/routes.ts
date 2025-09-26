@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { IngredientAnalyzerService } from "./services/ingredientAnalyzer.js";
 import path from "path";
 import fs from "fs/promises";
 
@@ -146,6 +147,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(500).json({ 
         error: "Failed to process image", 
+        details: error.message 
+      });
+    }
+  });
+
+  // Comprehensive ingredient analysis endpoint
+  app.post("/api/analyze-ingredients", async (req, res) => {
+    try {
+      const { ingredients, userProfile } = req.body;
+      
+      if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+        return res.status(400).json({ error: "Ingredients array is required" });
+      }
+      
+      if (!userProfile) {
+        return res.status(400).json({ error: "User profile is required" });
+      }
+      
+      console.log('Processing comprehensive analysis for ingredients:', ingredients);
+      console.log('User profile:', userProfile);
+      
+      const analyzerService = new IngredientAnalyzerService();
+      const analysisResults = await analyzerService.analyzeIngredients(ingredients, userProfile);
+      
+      res.json({
+        ingredients: analysisResults,
+        analysisTimestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Error in comprehensive ingredient analysis:", error);
+      res.status(500).json({ 
+        error: "Failed to analyze ingredients", 
         details: error.message 
       });
     }

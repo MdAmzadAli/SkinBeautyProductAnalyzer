@@ -60,7 +60,7 @@ function App() {
   const [hasEnteredApp, setHasEnteredApp] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
-  
+
   // Existing state
   const [currentView, setCurrentView] = useState('home');
   const [extractedText, setExtractedText] = useState("");
@@ -71,15 +71,15 @@ function App() {
   useEffect(() => {
     const storedHasEnteredApp = localStorage.getItem('hasEnteredApp') === 'true';
     const storedHasProfile = localStorage.getItem('hasProfile') === 'true';
-    
+
     setHasEnteredApp(storedHasEnteredApp);
     setHasProfile(storedHasProfile);
-    
+
     // Auto-open profile dialog if user entered app but has no profile
     if (storedHasEnteredApp && !storedHasProfile) {
       setIsProfileDialogOpen(true);
     }
-    
+
     // If user has profile, default to analyze view
     if (storedHasProfile) {
       setCurrentView('camera');
@@ -107,7 +107,7 @@ function App() {
   const handleProfileComplete = async (data: any) => {
     console.log('Profile completed:', data);
     setUserProfile(data);
-    
+
     // Save profile to backend
     try {
       const response = await fetch('/api/profile', {
@@ -117,7 +117,7 @@ function App() {
         },
         body: JSON.stringify(data),
       });
-      
+
       if (response.ok) {
         setHasProfile(true);
         setIsProfileDialogOpen(false);
@@ -128,12 +128,14 @@ function App() {
     }
   };
 
-  const handleAnalysisComplete = (ingredients: string[]) => {
-    console.log('Analysis completed for ingredients:', ingredients);
-    // Use mock ingredients for now as requested
-    setAnalysisResults(mockIngredients);
-    setExtractedText(ingredients.join(', '));
-    setCurrentView('analysis');
+  const handleAnalysisComplete = (analysisResults: any[]) => {
+    console.log('Analysis completed for ingredients:', analysisResults);
+
+    // Extract ingredient names for display
+    const ingredientNames = analysisResults.map(result => result.name);
+    setExtractedText(ingredientNames.join(', '));
+    setAnalysisResults(analysisResults);
+    setCurrentView('results');
   };
 
   const handleConfirmText = (text: string) => {
@@ -171,7 +173,7 @@ function App() {
         />
       );
     }
-    
+
     // Show loading or empty state during profile creation
     if (!hasProfile) {
       return (
@@ -183,11 +185,11 @@ function App() {
         </div>
       );
     }
-    
+
     switch (currentView) {
       case 'profile':
         return <ProfileView />;
-      
+
       case 'camera':
         return (
           <div className="space-y-6">
@@ -202,7 +204,7 @@ function App() {
             />
           </div>
         );
-      
+
       case 'analysis':
         return (
           <div className="space-y-6">
@@ -221,7 +223,7 @@ function App() {
             />
           </div>
         );
-      
+
       case 'history':
         return (
           <AnalysisHistory
@@ -230,7 +232,29 @@ function App() {
             onDeleteRecord={handleDeleteRecord}
           />
         );
-      
+
+      // New case for displaying detailed analysis results
+      case 'results':
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold mb-2">Detailed Ingredient Analysis</h1>
+              <p className="text-muted-foreground">
+                In-depth insights based on your skin profile and ingredient data
+              </p>
+            </div>
+            {/* Replace IngredientAnalysis with a new component for detailed results, or adapt IngredientAnalysis */}
+            {/* For now, using IngredientAnalysis as a placeholder, assuming it can display the new format */}
+            <IngredientAnalysis
+              extractedText={extractedText}
+              ingredients={analysisResults}
+              onConfirmText={handleConfirmText} // This might need adjustment based on new UI flow
+              onSaveAnalysis={handleSaveAnalysis} // This might need adjustment based on new UI flow
+              isLoading={false}
+            />
+          </div>
+        );
+
       default:
         return (
           <div className="text-center">
@@ -252,19 +276,19 @@ function App() {
             hasProfile={hasProfile}
             onGetStarted={handleGetStarted}
           />
-          
+
           <main className="p-6">
             <div className="max-w-6xl mx-auto">
               {renderCurrentView()}
             </div>
           </main>
-          
+
           <ProfileDialog 
             open={isProfileDialogOpen}
             onComplete={handleProfileComplete}
           />
         </div>
-        
+
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

@@ -100,19 +100,63 @@ export default function CameraUpload({ onAnalysisComplete }: CameraUploadProps) 
     }
   };
 
-  const handleAnalyzeIngredients = () => {
+  const handleAnalyzeIngredients = async () => {
     setIsAnalyzing(true);
     
-    // Get ingredient names from the edited list
-    const ingredients = extractedIngredients
-      .map(ingredient => ingredient.name.trim())
-      .filter(ingredient => ingredient.length > 0);
-    
-    // Simulate analysis delay
-    setTimeout(() => {
+    try {
+      // Get ingredient names from the edited list
+      const ingredients = extractedIngredients
+        .map(ingredient => ingredient.name.trim())
+        .filter(ingredient => ingredient.length > 0);
+      
+      if (ingredients.length === 0) {
+        alert('Please add at least one ingredient before analyzing.');
+        setIsAnalyzing(false);
+        return;
+      }
+      
+      // Get user profile (you might want to pass this as a prop or fetch it)
+      const profileResponse = await fetch('/api/profile');
+      let userProfile = null;
+      
+      if (profileResponse.ok) {
+        userProfile = await profileResponse.json();
+      } else {
+        // Use default profile if none exists
+        userProfile = {
+          skinType: 'normal',
+          concerns: [],
+          allergies: [],
+          lifestyle: [],
+          additionalInfo: ''
+        };
+      }
+      
+      // Call comprehensive analysis endpoint
+      const response = await fetch('/api/analyze-ingredients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ingredients,
+          userProfile
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        onAnalysisComplete(result.ingredients);
+      } else {
+        console.error('Failed to analyze ingredients');
+        alert('Failed to analyze ingredients. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error analyzing ingredients:', error);
+      alert('Error analyzing ingredients. Please try again.');
+    } finally {
       setIsAnalyzing(false);
-      onAnalysisComplete(ingredients);
-    }, 2000);
+    }
   };
 
   const updateIngredient = (index: number, field: 'name' | 'amount', value: string) => {
