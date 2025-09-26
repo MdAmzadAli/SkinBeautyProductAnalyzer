@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,7 @@ import MultiStepForm from "./components/MultiStepForm";
 import CameraUpload from "./components/CameraUpload";
 import IngredientAnalysis from "./components/IngredientAnalysis";
 import AnalysisHistory from "./components/AnalysisHistory";
+import ProfileDialog from "./components/ProfileDialog";
 
 //todo: remove mock functionality - replace with real data from backend
 const mockAnalysisRecords = [
@@ -54,20 +55,77 @@ const mockIngredients = [
 ];
 
 function App() {
+  // Onboarding state
+  const [hasEnteredApp, setHasEnteredApp] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  
+  // Existing state
   const [currentView, setCurrentView] = useState('home');
   const [extractedText, setExtractedText] = useState("");
   const [analysisResults, setAnalysisResults] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
 
+  // Initialize state from localStorage
+  useEffect(() => {
+    const storedHasEnteredApp = localStorage.getItem('hasEnteredApp') === 'true';
+    const storedHasProfile = localStorage.getItem('hasProfile') === 'true';
+    
+    setHasEnteredApp(storedHasEnteredApp);
+    setHasProfile(storedHasProfile);
+    
+    // Auto-open profile dialog if user entered app but has no profile
+    if (storedHasEnteredApp && !storedHasProfile) {
+      setIsProfileDialogOpen(true);
+    }
+    
+    // If user has profile, default to analyze view
+    if (storedHasProfile) {
+      setCurrentView('camera');
+    }
+  }, []);
+
+  // Save state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('hasEnteredApp', hasEnteredApp.toString());
+  }, [hasEnteredApp]);
+
+  useEffect(() => {
+    localStorage.setItem('hasProfile', hasProfile.toString());
+  }, [hasProfile]);
+
   const handleNavigate = (view: string) => {
     setCurrentView(view);
   };
 
-  const handleProfileComplete = (data: any) => {
+  const handleGetStarted = () => {
+    setHasEnteredApp(true);
+    setIsProfileDialogOpen(true);
+  };
+
+  const handleProfileComplete = async (data: any) => {
     console.log('Profile completed:', data);
     setUserProfile(data);
-    setCurrentView('camera');
+    
+    // Save profile to backend
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (response.ok) {
+        setHasProfile(true);
+        setIsProfileDialogOpen(false);
+        setCurrentView('camera'); // Default to Analyze page
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    }
   };
 
   const handleImageCapture = (file: File) => {
@@ -109,26 +167,40 @@ function App() {
   };
 
   const renderCurrentView = () => {
+    // Show welcome screen if user hasn't entered app yet
+    if (!hasEnteredApp) {
+      return (
+        <HomePage 
+          onNavigate={handleNavigate}
+          userStats={{
+            analyzedProducts: 0,
+            safeProducts: 0,
+            profileComplete: false
+          }}
+        />
+      );
+    }
+    
+    // Show loading or empty state during profile creation
+    if (!hasProfile) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-semibold">Setting up your profile...</h2>
+            <p className="text-muted-foreground">Please complete your skin profile to get started.</p>
+          </div>
+        </div>
+      );
+    }
+    
     switch (currentView) {
-      case 'home':
-        return (
-          <HomePage 
-            onNavigate={handleNavigate}
-            userStats={{
-              analyzedProducts: 12,
-              safeProducts: 8,
-              profileComplete: !!userProfile
-            }}
-          />
-        );
-      
       case 'profile':
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h1 className="text-3xl font-bold mb-2">Create Your Skin Profile</h1>
+              <h1 className="text-3xl font-bold mb-2">Update Your Skin Profile</h1>
               <p className="text-muted-foreground">
-                Help us understand your skin better for personalized ingredient analysis
+                Modify your skin profile for more personalized recommendations
               </p>
             </div>
             <MultiStepForm onComplete={handleProfileComplete} />
@@ -194,13 +266,24 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <div className="min-h-screen bg-background">
-          <Navigation currentView={currentView} onNavigate={handleNavigate} />
+          <Navigation 
+            currentView={currentView} 
+            onNavigate={handleNavigate}
+            hasEnteredApp={hasEnteredApp}
+            hasProfile={hasProfile}
+            onGetStarted={handleGetStarted}
+          />
           
           <main className="p-6 pb-24 md:pb-6">
             <div className="max-w-6xl mx-auto">
               {renderCurrentView()}
             </div>
           </main>
+          
+          <ProfileDialog 
+            open={isProfileDialogOpen}
+            onComplete={handleProfileComplete}
+          />
         </div>
         
         <Toaster />

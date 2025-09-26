@@ -67,6 +67,9 @@ export class MemStorage implements IStorage {
     const updatedProfile: UserProfile = {
       ...existingProfile,
       ...updateData,
+      concerns: updateData.concerns ? updateData.concerns as string[] : existingProfile.concerns,
+      allergies: updateData.allergies ? updateData.allergies as string[] : existingProfile.allergies,
+      lifestyle: updateData.lifestyle ? updateData.lifestyle as string[] : existingProfile.lifestyle,
     };
     this.profiles.set(existingProfile.id, updatedProfile);
     return updatedProfile;
